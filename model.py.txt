@@ -1,0 +1,53 @@
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# Define image dimensions for the autoencoder
+IMG_HEIGHT = 128
+IMG_WIDTH = 128
+CHANNELS = 3 # RGB images
+
+# Define the input shape
+input_shape = (IMG_HEIGHT, IMG_WIDTH, CHANNELS)
+
+# Encoder
+encoder_input = layers.Input(shape=input_shape)
+
+# Encoder block 1: Downsampling
+x = layers.Conv2D(32, (3, 3), strides=(2, 2), padding='same')(encoder_input);
+x = layers.BatchNormalization()(x);
+x = layers.LeakyReLU(negative_slope=0.2)(x) # Changed to LeakyReLU, using negative_slope
+
+# Encoder block 2: Downsampling
+x = layers.Conv2D(64, (3, 3), strides=(2, 2), padding='same')(x);
+x = layers.BatchNormalization()(x);
+x = layers.LeakyReLU(negative_slope=0.2)(x) # Changed to LeakyReLU, using negative_slope
+
+# Encoder block 3: Downsampling and latent space
+encoded = layers.Conv2D(128, (3, 3), strides=(2, 2), padding='same')(x) # Latent space
+# Apply BatchNormalization and LeakyReLU to the latent space itself
+encoded = layers.BatchNormalization()(encoded);
+encoded = layers.LeakyReLU(negative_slope=0.2)(encoded) # Changed to LeakyReLU, using negative_slope
+
+# Decoder using Conv2DTranspose
+# The input to the decoder is 'encoded' (16, 16, 128)
+
+# Decoder block 1: Upsampling
+x = layers.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='same')(encoded);
+x = layers.BatchNormalization()(x);
+x = layers.LeakyReLU(negative_slope=0.2)(x) # Changed to LeakyReLU, using negative_slope
+
+# Decoder block 2: Upsampling
+x = layers.Conv2DTranspose(64, (3, 3), strides=(2, 2), padding='same')(x);
+x = layers.BatchNormalization()(x);
+x = layers.LeakyReLU(negative_slope=0.2)(x) # Changed to LeakyReLU, using negative_slope
+
+# Decoder block 3: Upsampling
+x = layers.Conv2DTranspose(32, (3, 3), strides=(2, 2), padding='same')(x);
+x = layers.BatchNormalization()(x);
+x = layers.LeakyReLU(negative_slope=0.2)(x) # Changed to LeakyReLU, using negative_slope
+
+# Final output layer: map to original channels and activate with sigmoid
+decoder_output = layers.Conv2D(CHANNELS, (3, 3), activation='sigmoid', padding='same')(x)
+
+# Autoencoder model
+autoencoder = models.Model(encoder_input, decoder_output)

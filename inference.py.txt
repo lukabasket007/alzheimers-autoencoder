@@ -1,0 +1,233 @@
+# 1. Image Reconstruction
+
+import matplotlib.pyplot as plt
+
+if len(X_test) > 0:
+    # Get reconstructed images from the test set
+    reconstructed_images = autoencoder.predict(X_test)
+
+    # Display original vs. reconstructed images
+    n = 5 # Number of images to display
+    plt.figure(figsize=(20, 4))
+    for i in range(n):
+        # Original Image
+        ax = plt.subplot(2, n, i + 1)
+        plt.imshow(X_test[i])
+        plt.title("Original")
+        plt.axis('off')
+
+        # Reconstructed Image
+        ax = plt.subplot(2, n, i + 1 + n)
+        plt.imshow(reconstructed_images[i])
+        plt.title("Reconstructed")
+        plt.axis('off')
+    plt.suptitle('Original vs. Reconstructed Images (Test Set)')
+    plt.show()
+else:
+    print("Skipping image reconstruction: X_test is empty because no images were loaded.")
+
+# 2. Differentiation (Latent Space Analysis)
+
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+import numpy as np
+
+if len(X_test) > 0 and 'label_encoder' in locals() and len(y_test) > 0:
+    # Create an encoder model from the trained autoencoder
+    encoder = models.Model(inputs=autoencoder.input, outputs=encoded) # 'encoded' was the output of the encoder part
+
+    # Get latent space representations for the test set
+    latent_representations = encoder.predict(X_test)
+
+    # Flatten the latent representations for dimensionality reduction
+    # The shape of 'encoded' was (None, 16, 16, 128), so we flatten it to (None, 16*16*128)
+    latent_test_flat = latent_representations.reshape(latent_representations.shape[0], -1)
+
+    print(f"Shape of flattened latent representations: {latent_test_flat.shape}")
+
+    # Use PCA for dimensionality reduction to 2 components for visualization
+    pca = PCA(n_components=2)
+    latent_pca = pca.fit_transform(latent_test_flat)
+
+    # Plot the latent space, colored by original labels
+    plt.figure(figsize=(10, 8))
+
+    # Manually create legend for clearer labeling
+    for class_label in np.unique(y_test):
+        idx = (y_test == class_label)
+        plt.scatter(latent_pca[idx, 0], latent_pca[idx, 1],
+                    label=label_encoder.inverse_transform([class_label])[0],
+                    alpha=0.7)
+
+    plt.xlabel('Principal Component 1')
+    plt.ylabel('Principal Component 2')
+    plt.title('Latent Space Visualization (PCA) - Test Set')
+
+    # Add the legend with correct labels
+    plt.legend(title='Classes')
+    plt.grid(True)
+    plt.show()
+
+    print("Interpretation:")
+    print("If the different colored points form distinct clusters, it suggests that the autoencoder's latent space captures features that differentiate between 'non demented' and 'moderate dementia' images.")
+else:
+    print("Skipping latent space analysis: X_test or labels are empty because no images were loaded.")
+
+"""### Latent Space Visualization with t-SNE
+
+While PCA is good for linear separation, t-SNE (t-Distributed Stochastic Neighbor Embedding) is a non-linear dimensionality reduction technique that often provides a better visualization of clusters in high-dimensional data. It's more effective at preserving local structures, making it useful for seeing if classes are truly separable in the latent space.
+"""
+
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import numpy as np
+
+if 'latent_test_flat' in locals() and len(latent_test_flat) > 0 and 'label_encoder' in locals() and len(y_test) > 0:
+    print("Performing t-SNE dimensionality reduction (this may take a moment)...")
+    # Use t-SNE for dimensionality reduction to 2 components for visualization
+    # It's important to set a random_state for reproducibility
+    tsne = TSNE(n_components=2, random_state=42, perplexity=30, n_iter=1000, learning_rate=200)
+    latent_tsne = tsne.fit_transform(latent_test_flat)
+
+    # Plot the t-SNE transformed latent space, colored by original labels
+    plt.figure(figsize=(10, 8))
+
+    # Manually create legend for clearer labeling
+    for class_label in np.unique(y_test):
+        idx = (y_test == class_label)
+        plt.scatter(latent_tsne[idx, 0], latent_tsne[idx, 1],
+                    label=label_encoder.inverse_transform([class_label])[0],
+                    alpha=0.7)
+
+    plt.xlabel('t-SNE Component 1')
+    plt.ylabel('t-SNE Component 2')
+    plt.title('Latent Space Visualization (t-SNE) - Test Set')
+
+    # Add the legend with correct labels
+    plt.legend(title='Classes')
+    plt.grid(True)
+    plt.show()
+
+    print("Interpretation:")
+    print("If the different colored points form distinct clusters in the t-SNE plot, it further supports that the autoencoder's latent space captures meaningful features for classification. Even if clusters overlap, the classifier might still perform well due to its ability to find non-linear decision boundaries in the original high-dimensional latent space.")
+else:
+    print("Skipping t-SNE visualization: Latent features (latent_test_flat) or labels are not available.")
+
+"""### Latent Space Visualization with UMAP
+
+Uniform Manifold Approximation and Projection (UMAP) is a dimensionality reduction technique that is particularly well-suited for visualizing clusters within high-dimensional data, often being faster than t-SNE and better at preserving the global structure.
+"""
+
+import umap
+import matplotlib.pyplot as plt
+import numpy as np
+
+if 'latent_test_flat' in locals() and len(latent_test_flat) > 0 and 'label_encoder' in locals() and len(y_test) > 0:
+    print("Performing UMAP dimensionality reduction (this may take a moment)...")
+    # Use UMAP for dimensionality reduction to 2 components for visualization
+    # It's important to set a random_state for reproducibility
+    reducer = umap.UMAP(n_components=2, random_state=42)
+    latent_umap = reducer.fit_transform(latent_test_flat)
+
+    # Plot the UMAP transformed latent space, colored by original labels
+    plt.figure(figsize=(10, 8))
+
+    # Manually create legend for clearer labeling
+    for class_label in np.unique(y_test):
+        idx = (y_test == class_label)
+        plt.scatter(latent_umap[idx, 0], latent_umap[idx, 1],
+                    label=label_encoder.inverse_transform([class_label])[0],
+                    alpha=0.7)
+
+    plt.xlabel('UMAP Component 1')
+    plt.ylabel('UMAP Component 2')
+    plt.title('Latent Space Visualization (UMAP) - Test Set')
+
+    # Add the legend with correct labels
+    plt.legend(title='Classes')
+    plt.grid(True)
+    plt.show()
+
+    print("Interpretation:")
+    print("UMAP should also reveal clustering patterns. If classes form distinct groups, it indicates that the autoencoder's latent features are effective for classification.")
+else:
+    print("Skipping UMAP visualization: Latent features (latent_test_flat) or labels are not available.")
+
+"""### Evaluating Latent Space Discriminability with a Classifier
+
+To quantitatively assess how well the autoencoder's latent space differentiates between the two classes, we can train a simple classifier on the extracted latent features. If the latent space is discriminative, a simple classifier should achieve reasonable accuracy.
+"""
+
+from tensorflow.keras import layers, models
+from sklearn.metrics import accuracy_score
+
+# Always recreate the encoder model from the latest autoencoder
+# This ensures it uses the most up-to-date autoencoder and its learned weights.
+encoder = models.Model(inputs=autoencoder.input, outputs=encoded)
+
+# 1. Extract latent features for training and test sets
+
+# Check if X_train and X_test are not empty
+if len(X_train) > 0 and len(X_test) > 0:
+    # Debug prints to check X_train and X_test shapes right before use
+    print(f"Debug: X_train shape in classifier cell: {X_train.shape}")
+    print(f"Debug: X_test shape in classifier cell: {X_test.shape}")
+
+    # Get latent space representations for the training set
+    latent_train = encoder.predict(X_train)
+    latent_train_flat = latent_train.reshape(latent_train.shape[0], -1)
+
+    # Get latent space representations for the test set
+    latent_test = encoder.predict(X_test)
+    latent_test_flat = latent_test.reshape(latent_test.shape[0], -1)
+
+    print(f"Shape of flattened latent train features: {latent_train_flat.shape}")
+    print(f"Shape of flattened latent test features: {latent_test_flat.shape}")
+
+    # Determine the number of unique classes for the classifier
+    num_classes = len(np.unique(y_train)) # Use y_train to get all class labels
+
+    # 2. Define a simple classifier model for multi-class classification
+    latent_dim = latent_train_flat.shape[1]
+
+    classifier_input = layers.Input(shape=(latent_dim,))
+    x = layers.Dense(64, activation='relu')(classifier_input)
+    x = layers.Dropout(0.3)(x)
+    x = layers.Dense(32, activation='relu')(x)
+    x = layers.Dropout(0.3)(x)
+    # Changed to num_classes neurons with 'softmax' activation for multi-class classification
+    classifier_output = layers.Dense(num_classes, activation='softmax')(x)
+
+    classifier_model = models.Model(classifier_input, classifier_output)
+
+    # Compile the classifier with sparse_categorical_crossentropy for integer labels
+    classifier_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+    classifier_model.summary()
+
+    # 3. Train the classifier
+    print("\nTraining the classifier on latent features...")
+    history_classifier = classifier_model.fit(latent_train_flat, y_train,
+                                            epochs=20, # Can adjust epochs for the classifier
+                                            batch_size=32,
+                                            validation_data=(latent_test_flat, y_test))
+
+    # 4. Evaluate the classifier
+    print("\nEvaluating the classifier on the test set...")
+    loss, accuracy = classifier_model.evaluate(latent_test_flat, y_test, verbose=0)
+    print(f"Classifier Test Accuracy: {accuracy*100:.2f}%")
+
+    # Plot training & validation accuracy values
+    plt.figure(figsize=(10, 6))
+    plt.plot(history_classifier.history['accuracy'], label='Classifier Training Accuracy')
+    plt.plot(history_classifier.history['val_accuracy'], label='Classifier Validation Accuracy')
+    plt.title('Classifier Accuracy During Training on Latent Features')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    plt.show()
+
+else:
+    print("Skipping classifier training: X_train or X_test is empty because no images were loaded.")
+

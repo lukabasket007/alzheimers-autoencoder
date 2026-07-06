@@ -1,0 +1,52 @@
+import matplotlib.pyplot as plt
+
+if len(X_train) > 0:
+    history = autoencoder.fit(X_train, X_train, # Input and target are the same for autoencoders
+                              epochs=100, # Number of training epochs (can be adjusted)
+                              batch_size=32, # Batch size (can be adjusted)
+                              shuffle=True,
+                              validation_data=(X_test, X_test))
+
+    # Plot training & validation loss values
+    plt.figure(figsize=(10, 6))
+    plt.plot(history.history['loss'], label='Training Loss')
+    plt.plot(history.history['val_loss'], label='Validation Loss')
+    plt.title('Model Loss During Training')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(loc='upper right')
+    plt.grid(True)
+    plt.show()
+else:
+    print("Skipping model training: X_train is empty because no images were loaded.")
+
+from tensorflow.keras.callbacks import EarlyStopping
+
+# Define the EarlyStopping callback
+# Monitor 'val_loss', with a patience of 10 epochs. Restore best weights if training stops.
+early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+
+# Re-train the autoencoder with the EarlyStopping callback
+# You might want to re-run the previous autoencoder definition cell (87295f62)
+# to reset weights if you are re-training on the same model instance.
+if len(X_train) > 0:
+    print("Re-training autoencoder with EarlyStopping...")
+    history_early_stop = autoencoder.fit(X_train, X_train,
+                                          epochs=200, # Set a higher number of epochs, EarlyStopping will stop it sooner
+                                          batch_size=32,
+                                          shuffle=True,
+                                          validation_data=(X_test, X_test),
+                                          callbacks=[early_stopping]) # Add the callback here
+
+    # Plot training & validation loss values for the early-stopped training
+    plt.figure(figsize=(10, 6))
+    plt.plot(history_early_stop.history['loss'], label='Training Loss (EarlyStop)')
+    plt.plot(history_early_stop.history['val_loss'], label='Validation Loss (EarlyStop)')
+    plt.title('Model Loss During Training with EarlyStopping')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(loc='upper right')
+    plt.grid(True)
+    plt.show()
+else:
+    print("Skipping model re-training with EarlyStopping: X_train is empty.")
